@@ -1,11 +1,9 @@
 import React from 'react';
 
-// Mise à jour de l'URL de redirection pour le déploiement Netlify
-const redirectUri = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000/callback'
-  : 'https://funny-elf-e06f65.netlify.app/callback';
+// Forcer l'utilisation de l'URL Netlify pour la redirection
+const redirectUri = 'https://funny-elf-e06f65.netlify.app/callback';
 
-// Construction de l'URL d'authentification avec la bonne redirection
+// Construction de l'URL d'authentification avec la redirection Netlify
 const AUTH_URL = `https://accounts.spotify.com/authorize?client_id=cc7bb357846a4f41bf3f7ed5e710ac43&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=user-read-private%20user-read-email%20user-top-read`;
 
 const Login = () => {

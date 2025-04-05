@@ -19,7 +19,7 @@ const Callback = () => {
 
       if (!hash) {
         console.log("No hash found, redirecting to home");
-        window.location.href = '/';
+        navigate('/');
         return;
       }
 
@@ -34,22 +34,22 @@ const Callback = () => {
 
         if (token) {
           // Stockage du token
-          window.localStorage.setItem("spotify_token", token);
+          localStorage.setItem("spotify_token", token);
           
-          // Redirection forcée vers le dashboard
-          window.location.href = '/dashboard';
+          // Utilisation de navigate au lieu de window.location
+          navigate('/dashboard');
         } else {
           console.error("No token in URL");
-          window.location.href = '/';
+          navigate('/');
         }
       } catch (error) {
         console.error("Error during callback:", error);
-        window.location.href = '/';
+        navigate('/');
       }
     };
 
     handleCallback();
-  }, []);
+  }, [navigate]);
 
   return (
     <div style={styles.container}>
