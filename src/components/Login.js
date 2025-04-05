@@ -1,12 +1,41 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-// Forcer l'utilisation de l'URL Netlify pour la redirection
-const redirectUri = 'https://funny-elf-e06f65.netlify.app/callback';
+// Configuration Spotify
+const CLIENT_ID = 'cc7bb357846a4f41bf3f7ed5e710ac43';
+// IMPORTANT: Cette URL doit être exactement la même dans le Spotify Dashboard
+const REDIRECT_URI = 'https://funny-elf-e06f65.netlify.app/callback';
+const SCOPES = [
+  'user-read-private',
+  'user-read-email',
+  'user-top-read'
+];
 
-// Construction de l'URL d'authentification avec la redirection Netlify
-const AUTH_URL = `https://accounts.spotify.com/authorize?client_id=cc7bb357846a4f41bf3f7ed5e710ac43&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=user-read-private%20user-read-email%20user-top-read`;
+// Construction de l'URL d'authentification avec state pour la sécurité
+const generateRandomString = length => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+};
+
+const state = generateRandomString(16);
+
+// Construction de l'URL d'authentification
+const AUTH_URL = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=${SCOPES.join('%20')}&state=${state}&show_dialog=true`;
 
 const Login = () => {
+  const handleLogin = () => {
+    // Nettoyer le localStorage avant la nouvelle connexion
+    localStorage.clear(); // Nettoyage complet du localStorage
+    sessionStorage.clear(); // Nettoyage du sessionStorage aussi
+    
+    // Sauvegarder l'état pour la vérification
+    localStorage.setItem('spotify_auth_state', state);
+    
+    // Rediriger vers Spotify
+    window.location.href = AUTH_URL;
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.content}>
@@ -20,7 +49,7 @@ const Login = () => {
           Découvrez vos artistes et morceaux préférés basés sur votre historique d'écoute
         </p>
         <button 
-          onClick={() => window.location.href = AUTH_URL}
+          onClick={handleLogin}
           style={styles.button}
           onMouseEnter={(e) => e.target.style.backgroundColor = '#1ed760'}
           onMouseLeave={(e) => e.target.style.backgroundColor = '#1DB954'}

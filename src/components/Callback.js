@@ -19,16 +19,15 @@ const Callback = () => {
 
       if (!hash) {
         console.log("No hash found, redirecting to home");
-        navigate('/');
+        navigate('/', { replace: true });
         return;
       }
 
       try {
-        const token = hash
-          .substring(1)
-          .split("&")
-          .find(elem => elem.startsWith("access_token"))
-          ?.split("=")[1];
+        // Extraire tous les paramètres du hash
+        const params = new URLSearchParams(hash.substring(1));
+        const token = params.get('access_token');
+        const expiresIn = params.get('expires_in');
 
         console.log("Token found:", !!token);
 
@@ -36,15 +35,19 @@ const Callback = () => {
           // Stockage du token
           localStorage.setItem("spotify_token", token);
           
-          // Utilisation de navigate au lieu de window.location
-          navigate('/dashboard');
+          // Stockage de l'expiration du token
+          const expirationTime = Date.now() + (parseInt(expiresIn) * 1000);
+          localStorage.setItem("token_expiration", expirationTime.toString());
+          
+          // Redirection vers le dashboard
+          navigate('/dashboard', { replace: true });
         } else {
           console.error("No token in URL");
-          navigate('/');
+          navigate('/', { replace: true });
         }
       } catch (error) {
         console.error("Error during callback:", error);
-        navigate('/');
+        navigate('/', { replace: true });
       }
     };
 
