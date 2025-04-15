@@ -8,6 +8,7 @@ import Stats from './components/pages/Stats';
 import Search from './components/pages/Search';
 import Player from './components/pages/Player';
 import Settings from './components/pages/Settings';
+import About from './components/pages/About';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -21,6 +22,7 @@ root.render(
           <Route path="search" element={<Search />} />
           <Route path="player" element={<Player />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="about" element={<About />} />
         </Route>
       </Routes>
     </BrowserRouter>
