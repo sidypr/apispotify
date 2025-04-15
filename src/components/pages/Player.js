@@ -12,7 +12,32 @@ const Player = () => {
   useEffect(() => {
     const fetchPlaybackState = async () => {
       const token = localStorage.getItem('spotify_token');
+      if (!token) {
+        setError('Session non trouvée. Veuillez vous connecter.');
+        return;
+      }
+
       try {
+        // D'abord, vérifions les appareils disponibles
+        const devicesResponse = await fetch('https://api.spotify.com/v1/me/player/devices', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!devicesResponse.ok) {
+          throw new Error('Erreur lors de la récupération des appareils');
+        }
+
+        const devicesData = await devicesResponse.json();
+        const activeDevice = devicesData.devices.find(device => device.is_active);
+        
+        if (!activeDevice) {
+          setError("Aucun appareil actif trouvé. Veuillez lancer Spotify sur l'un de vos appareils et commencer la lecture.");
+          return;
+        }
+
+        // Ensuite, récupérons l'état de lecture
         const response = await fetch('https://api.spotify.com/v1/me/player', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -20,7 +45,7 @@ const Player = () => {
         });
 
         if (response.status === 204) {
-          setError("Aucun appareil actif trouvé. Veuillez lancer Spotify sur l'un de vos appareils.");
+          setError("Aucune lecture en cours. Veuillez lancer une lecture sur Spotify.");
           return;
         }
 
@@ -34,6 +59,12 @@ const Player = () => {
         }
 
         const data = await response.json();
+        
+        if (!data.item) {
+          setError("Aucune piste en cours de lecture.");
+          return;
+        }
+
         setCurrentTrack(data.item);
         setIsPlaying(data.is_playing);
         setVolume(data.device.volume_percent);
@@ -54,13 +85,23 @@ const Player = () => {
 
   const handlePlayPause = async () => {
     const token = localStorage.getItem('spotify_token');
+    if (!deviceId) {
+      setError("Aucun appareil actif trouvé.");
+      return;
+    }
+
     try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/${isPlaying ? 'pause' : 'play'}`, {
+      const response = await fetch(`https://api.spotify.com/v1/me/player/${isPlaying ? 'pause' : 'play'}?device_id=${deviceId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      if (response.status === 404) {
+        setError("L'appareil n'est plus disponible. Veuillez rafraîchir la page.");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error('Erreur lors du contrôle de la lecture');
@@ -187,6 +228,15 @@ const Player = () => {
 
   return (
     <div style={styles.container}>
+      <div style={styles.helpCard}>
+        <p style={styles.helpText}>
+          Pour utiliser le lecteur :
+          <br />1. Assurez-vous d'avoir un compte Spotify Premium
+          <br />2. Ouvrez Spotify sur n'importe quel appareil (mobile, ordinateur, etc.)
+          <br />3. Commencez la lecture d'une chanson
+          <br />4. Le lecteur se synchronisera automatiquement
+        </p>
+      </div>
       <div style={styles.playerCard}>
         <div style={styles.nowPlaying}>
           <img 
@@ -407,6 +457,19 @@ const styles = {
     textAlign: 'center',
     color: '#b3b3b3',
     fontSize: '1.1rem',
+  },
+  helpCard: {
+    backgroundColor: '#282828',
+    padding: '20px',
+    borderRadius: '10px',
+    maxWidth: '800px',
+    margin: '0 auto 20px auto',
+  },
+  helpText: {
+    color: '#b3b3b3',
+    fontSize: '1rem',
+    lineHeight: '1.5',
+    margin: 0,
   },
 };
 

@@ -10,7 +10,16 @@ const AUTH_URL = 'https://accounts.spotify.com/authorize' +
   '?client_id=' + CLIENT_ID +
   '&redirect_uri=' + encodeURIComponent(REDIRECT_URI) +
   '&response_type=token' +
-  '&scope=' + encodeURIComponent('user-read-private user-read-email user-top-read user-read-playback-state user-modify-playback-state user-read-currently-playing');
+  '&scope=' + encodeURIComponent(
+    'user-read-private ' +
+    'user-read-email ' +
+    'user-top-read ' +
+    'user-read-playback-state ' +
+    'user-modify-playback-state ' +
+    'user-read-currently-playing ' +
+    'streaming ' +
+    'app-remote-control'
+  );
 
 const Login = () => {
   const navigate = useNavigate();
