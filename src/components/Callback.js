@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // NOTE IMPORTANTE: Pour le déploiement sur Netlify, l'URL de redirection dans le Spotify Developer Dashboard
-// doit être configurée pour correspondre à: https://funny-elf-e06f65.netlify.app/callback
+// doit être configurée pour correspondre à: https://tourmaline-licorice-6a583d.netlify.app/callback
 // et l'URL d'authentification dans votre application doit utiliser cette même URL de redirection
 //
 // L'URL d'authentification correcte pour Netlify serait:
-// https://accounts.spotify.com/authorize?client_id=cc7bb357846a4f41bf3f7ed5e710ac43&redirect_uri=https://funny-elf-e06f65.netlify.app/callback&response_type=token&scope=user-read-private%20user-read-email%20user-top-read
+// https://accounts.spotify.com/authorize?client_id=93325500c897490aac9b1e6222db7e3a&redirect_uri=https://tourmaline-licorice-6a583d.netlify.app/callback&response_type=token&scope=user-read-private%20user-read-email%20user-top-read
 //
 // Cette URL doit être mise à jour dans le fichier où vous générez le lien d'authentification (probablement Login.js ou similaire)
 const Callback = () => {

@@ -1,8 +1,8 @@
 import React from 'react';
 
 const SpotifyAuth = () => {
-  const CLIENT_ID = "cc7bb357846a4f41bf3f7ed5e710ac43"; // Votre vrai ID client Spotify
-  const REDIRECT_URI = "http://localhost:3000/callback";
+  const CLIENT_ID = "93325500c897490aac9b1e6222db7e3a"; // Votre vrai ID client Spotify
+  const REDIRECT_URI = "https://tourmaline-licorice-6a583d.netlify.app/callback";
   const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
   const RESPONSE_TYPE = "token";
   const SCOPE = "user-read-private user-read-email user-top-read";
