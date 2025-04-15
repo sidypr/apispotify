@@ -20,7 +20,7 @@ const Player = () => {
         });
 
         if (response.status === 204) {
-          setError('Aucun appareil actif trouvé. Veuillez lancer Spotify sur l'un de vos appareils.');
+          setError("Aucun appareil actif trouvé. Veuillez lancer Spotify sur l'un de vos appareils.");
           return;
         }
 
