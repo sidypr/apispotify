@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Configuration Spotify
 const CLIENT_ID = '93325500c897490aac9b1e6222db7e3a';
-const REDIRECT_URI = 'https://apispotify.netlify.app/callback';
+const REDIRECT_URI = 'https://tourmaline-licorice-6a583d.netlify.app/callback';
 
 // URL d'authentification
 const AUTH_URL = 'https://accounts.spotify.com/authorize' +
