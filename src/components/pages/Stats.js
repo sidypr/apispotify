@@ -2,7 +2,7 @@ import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const Stats = () => {
-  const { topArtists, topTracks, displayMode } = useOutletContext();
+  const { topArtists, topTracks, displayMode, setDisplayMode } = useOutletContext();
 
   const renderArtists = () => {
     if (displayMode === 'grid') {
@@ -82,6 +82,24 @@ const Stats = () => {
 
   return (
     <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.sectionTitle}>Vos Top Artistes et Titres</h2>
+        <div style={styles.displayModeSelector}>
+          <button 
+            onClick={() => setDisplayMode('grid')}
+            style={displayMode === 'grid' ? styles.activeDisplayButton : styles.displayButton}
+          >
+            Grille
+          </button>
+          <button 
+            onClick={() => setDisplayMode('list')}
+            style={displayMode === 'list' ? styles.activeDisplayButton : styles.displayButton}
+          >
+            Liste
+          </button>
+        </div>
+      </div>
+
       <section style={styles.section}>
         <h2 style={styles.sectionTitle}>Vos Top Artistes</h2>
         {renderArtists()}
@@ -184,6 +202,36 @@ const styles = {
     color: '#b3b3b3',
     fontSize: '0.9rem',
     margin: '5px 0',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '30px',
+  },
+  displayModeSelector: {
+    display: 'flex',
+    gap: '10px',
+  },
+  displayButton: {
+    backgroundColor: '#282828',
+    color: 'white',
+    border: '1px solid #1DB954',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s',
+  },
+  activeDisplayButton: {
+    backgroundColor: '#1DB954',
+    color: 'white',
+    border: '1px solid #1DB954',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    transition: 'all 0.2s',
   },
 };
 

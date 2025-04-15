@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SpotifyAuth from './components/SpotifyAuth';
@@ -27,4 +27,14 @@ root.render(
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
-); 
+);
+
+useEffect(() => {
+  const fetchPlaybackState = async () => {
+    // Récupère l'état de lecture toutes les secondes
+    // Met à jour les informations : piste en cours, état de lecture, volume, etc.
+  };
+  fetchPlaybackState();
+  const interval = setInterval(fetchPlaybackState, 1000);
+  return () => clearInterval(interval);
+}, []); 
