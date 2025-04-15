@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // NOTE IMPORTANTE: Pour le déploiement sur Netlify, l'URL de redirection dans le Spotify Developer Dashboard
@@ -13,45 +13,23 @@ const Callback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const hash = window.location.hash;
-      console.log("Processing hash:", hash);
+    const hash = window.location.hash;
+    if (hash) {
+      const token = hash
+        .substring(1)
+        .split('&')
+        .find(elem => elem.startsWith('access_token'))
+        ?.split('=')[1];
 
-      if (!hash) {
-        console.log("No hash found, redirecting to home");
-        navigate('/', { replace: true });
-        return;
+      if (token) {
+        localStorage.setItem('spotify_token', token);
+        navigate('/dashboard');
+      } else {
+        navigate('/');
       }
-
-      try {
-        // Extraire tous les paramètres du hash
-        const params = new URLSearchParams(hash.substring(1));
-        const token = params.get('access_token');
-        const expiresIn = params.get('expires_in');
-
-        console.log("Token found:", !!token);
-
-        if (token) {
-          // Stockage du token
-          localStorage.setItem("spotify_token", token);
-          
-          // Stockage de l'expiration du token
-          const expirationTime = Date.now() + (parseInt(expiresIn) * 1000);
-          localStorage.setItem("token_expiration", expirationTime.toString());
-          
-          // Redirection vers le dashboard
-          navigate('/dashboard', { replace: true });
-        } else {
-          console.error("No token in URL");
-          navigate('/', { replace: true });
-        }
-      } catch (error) {
-        console.error("Error during callback:", error);
-        navigate('/', { replace: true });
-      }
-    };
-
-    handleCallback();
+    } else {
+      navigate('/');
+    }
   }, [navigate]);
 
   return (
@@ -82,8 +60,7 @@ const styles = {
     marginBottom: '20px',
   },
   text: {
-    fontSize: '18px',
-    color: '#ffffff',
+    color: '#b3b3b3',
   },
   '@keyframes spin': {
     '0%': { transform: 'rotate(0deg)' },

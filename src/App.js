@@ -42,7 +42,7 @@ const Callback = () => {
 
 const App = () => {
   const isAuthenticated = () => {
-    return !!localStorage.getItem('spotify_token');
+    return localStorage.getItem('spotify_token') || localStorage.getItem('demo_mode');
   };
 
   return (
