@@ -32,7 +32,7 @@ const About = () => {
             Cette application a été développée par Sidy. 
             Retrouvez-moi sur{' '}
             <a 
-              href="https://github.com/sidykeita" 
+              href="https://github.com/sidypr" 
               target="_blank" 
               rel="noopener noreferrer"
               style={styles.link}
@@ -41,7 +41,7 @@ const About = () => {
             </a>
             {' '}et{' '}
             <a 
-              href="https://www.linkedin.com/in/sidy-keita" 
+              href="https://www.linkedin.com/in/sidy-djimbira-118471223" 
               target="_blank" 
               rel="noopener noreferrer"
               style={styles.link}
