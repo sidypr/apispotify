@@ -2,83 +2,110 @@ import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const Stats = () => {
-  const { topArtists, topTracks, playlists } = useOutletContext();
+  const { topArtists, topTracks, displayMode } = useOutletContext();
 
-  // Estimation des heures d'écoute
-  const estimatedListeningHours = topTracks.reduce((total, track) => {
-    return total + (track.duration_ms / 3600000); // Convertir ms en heures
-  }, 0).toFixed(2);
-
-  return (
-    <div>
-      <h1 style={styles.title}>Statistiques détaillées</h1>
-      <section style={styles.section}>
-        <h2 style={styles.subtitle}>Vos Artistes Préférés</h2>
+  const renderArtists = () => {
+    if (displayMode === 'grid') {
+      return (
         <div style={styles.grid}>
           {topArtists.map(artist => (
             <div key={artist.id} style={styles.card}>
-              {artist.images && artist.images.length > 0 && (
+              {artist.images?.[0]?.url && (
                 <img src={artist.images[0].url} alt={artist.name} style={styles.artistImage} />
               )}
-              <h3 style={styles.artistName}>{artist.name}</h3>
-              <p>Genres: {artist.genres.slice(0, 2).join(', ')}</p>
-              <p>Popularité: {artist.popularity}%</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={styles.section}>
-        <h2 style={styles.subtitle}>Vos Morceaux Préférés</h2>
-        <p>Estimation des heures d'écoute: {estimatedListeningHours} heures</p>
-        <div style={styles.trackList}>
-          {topTracks.map((track, index) => (
-            <div key={track.id} style={styles.trackItem}>
-              <span style={styles.trackNumber}>{index + 1}</span>
-              <img 
-                src={track.album.images[2]?.url} 
-                alt={track.name}
-                style={styles.trackImage}
-              />
-              <div style={styles.trackInfo}>
-                <h3 style={styles.trackName}>{track.name}</h3>
-                <p>{track.artists.map(a => a.name).join(', ')}</p>
-                <p>Album: {track.album.name}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={styles.section}>
-        <h2 style={styles.subtitle}>Vos Playlists</h2>
-        <div style={styles.grid}>
-          {playlists.map(playlist => (
-            <div key={playlist.id} style={styles.card}>
-              {playlist.images && playlist.images.length > 0 && (
-                <img src={playlist.images[0].url} alt={playlist.name} style={styles.artistImage} />
+              <h3 style={styles.itemTitle}>{artist.name}</h3>
+              {artist.genres && (
+                <p style={styles.genres}>
+                  {artist.genres.slice(0, 3).join(', ')}
+                </p>
               )}
-              <h3 style={styles.artistName}>{playlist.name}</h3>
-              <p>Nombre de morceaux: {playlist.tracks.total}</p>
             </div>
           ))}
         </div>
+      );
+    }
+
+    return (
+      <div style={styles.list}>
+        {topArtists.map((artist, index) => (
+          <div key={artist.id} style={styles.listItem}>
+            <span style={styles.rank}>{index + 1}</span>
+            {artist.images?.[0]?.url && (
+              <img src={artist.images[0].url} alt={artist.name} style={styles.listImage} />
+            )}
+            <div style={styles.itemInfo}>
+              <h3 style={styles.itemTitle}>{artist.name}</h3>
+              {artist.genres && (
+                <p style={styles.genres}>
+                  {artist.genres.slice(0, 3).join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTracks = () => {
+    if (displayMode === 'grid') {
+      return (
+        <div style={styles.grid}>
+          {topTracks.map(track => (
+            <div key={track.id} style={styles.card}>
+              <img src={track.album.images[0].url} alt={track.name} style={styles.trackImage} />
+              <h3 style={styles.itemTitle}>{track.name}</h3>
+              <p style={styles.artist}>{track.artists[0].name}</p>
+              <p style={styles.album}>{track.album.name}</p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div style={styles.list}>
+        {topTracks.map((track, index) => (
+          <div key={track.id} style={styles.listItem}>
+            <span style={styles.rank}>{index + 1}</span>
+            <img src={track.album.images[0].url} alt={track.name} style={styles.listImage} />
+            <div style={styles.itemInfo}>
+              <h3 style={styles.itemTitle}>{track.name}</h3>
+              <p style={styles.artist}>{track.artists[0].name}</p>
+              <p style={styles.album}>{track.album.name}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={styles.container}>
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Vos Top Artistes</h2>
+        {renderArtists()}
+      </section>
+
+      <section style={styles.section}>
+        <h2 style={styles.sectionTitle}>Vos Top Titres</h2>
+        {renderTracks()}
       </section>
     </div>
   );
 };
 
 const styles = {
-  title: {
-    color: 'white',
-    marginBottom: '30px',
-  },
-  subtitle: {
-    color: 'white',
-    marginBottom: '20px',
+  container: {
+    padding: '20px',
   },
   section: {
     marginBottom: '40px',
+  },
+  sectionTitle: {
+    fontSize: '1.8rem',
+    color: '#1DB954',
+    marginBottom: '20px',
   },
   grid: {
     display: 'grid',
@@ -89,48 +116,75 @@ const styles = {
     backgroundColor: '#282828',
     padding: '15px',
     borderRadius: '10px',
-    color: 'white',
+    transition: 'transform 0.2s',
+    '&:hover': {
+      transform: 'scale(1.02)',
+    },
   },
-  artistImage: {
-    width: '100%',
-    borderRadius: '5px',
-    marginBottom: '10px',
-  },
-  artistName: {
-    margin: '10px 0',
-    color: 'white',
-  },
-  trackList: {
+  list: {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
   },
-  trackItem: {
+  listItem: {
     display: 'flex',
     alignItems: 'center',
-    padding: '10px',
     backgroundColor: '#282828',
-    borderRadius: '5px',
-    color: 'white',
+    padding: '10px',
+    borderRadius: '10px',
+    transition: 'transform 0.2s',
+    '&:hover': {
+      transform: 'scale(1.01)',
+    },
   },
-  trackNumber: {
-    width: '30px',
-    textAlign: 'center',
-    fontSize: '18px',
+  rank: {
+    fontSize: '1.5rem',
     fontWeight: 'bold',
+    marginRight: '20px',
+    color: '#1DB954',
+    minWidth: '30px',
+  },
+  artistImage: {
+    width: '100%',
+    aspectRatio: '1',
+    borderRadius: '50%',
+    marginBottom: '15px',
   },
   trackImage: {
+    width: '100%',
+    aspectRatio: '1',
+    borderRadius: '5px',
+    marginBottom: '15px',
+  },
+  listImage: {
     width: '60px',
     height: '60px',
+    borderRadius: '5px',
     marginRight: '15px',
   },
-  trackInfo: {
+  itemInfo: {
     flex: 1,
   },
-  trackName: {
+  itemTitle: {
+    fontSize: '1.1rem',
     margin: '0 0 5px 0',
     color: 'white',
-  }
+  },
+  genres: {
+    color: '#b3b3b3',
+    fontSize: '0.9rem',
+    margin: '5px 0',
+  },
+  artist: {
+    color: '#1DB954',
+    fontSize: '0.9rem',
+    margin: '5px 0',
+  },
+  album: {
+    color: '#b3b3b3',
+    fontSize: '0.9rem',
+    margin: '5px 0',
+  },
 };
 
 export default Stats; 

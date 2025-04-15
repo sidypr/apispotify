@@ -6,7 +6,7 @@ import Callback from './components/Callback';
 import Dashboard from './components/Dashboard';
 import Stats from './components/pages/Stats';
 import Filters from './components/pages/Filters';
-import Info from './components/pages/Info';
+import Settings from './components/pages/Settings';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -18,7 +18,7 @@ root.render(
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<Stats />} />
           <Route path="filters" element={<Filters />} />
-          <Route path="info" element={<Info />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

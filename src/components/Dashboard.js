@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, Outlet } from 'react-router-dom';
 
 // Données de démonstration
 const demoData = {
@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [topTracks, setTopTracks] = useState([]);
   const [topArtists, setTopArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState(localStorage.getItem('timeRange') || 'medium_term');
+  const [displayMode, setDisplayMode] = useState(localStorage.getItem('displayMode') || 'grid');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -110,6 +112,11 @@ const Dashboard = () => {
             />
           )}
           <h1 style={styles.title}>Bienvenue, {userData.display_name}</h1>
+          <nav style={styles.nav}>
+            <Link to="/dashboard" style={styles.navLink}>Statistiques</Link>
+            <Link to="/dashboard/filters" style={styles.navLink}>Filtres</Link>
+            <Link to="/dashboard/settings" style={styles.navLink}>Paramètres</Link>
+          </nav>
           <button onClick={handleLogout} style={styles.logoutButton}>
             Déconnexion
           </button>
@@ -117,42 +124,15 @@ const Dashboard = () => {
       )}
 
       <div style={styles.content}>
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Vos Top Artistes</h2>
-          <div style={styles.grid}>
-            {topArtists.map(artist => (
-              <div key={artist.id} style={styles.card}>
-                {artist.images?.[0]?.url && (
-                  <img 
-                    src={artist.images[0].url} 
-                    alt={artist.name}
-                    style={styles.artistImage}
-                  />
-                )}
-                <h3 style={styles.itemTitle}>{artist.name}</h3>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Vos Top Titres</h2>
-          <div style={styles.list}>
-            {topTracks.map(track => (
-              <div key={track.id} style={styles.trackItem}>
-                <img 
-                  src={track.album.images[0].url} 
-                  alt={track.name}
-                  style={styles.trackImage}
-                />
-                <div style={styles.trackInfo}>
-                  <h3 style={styles.trackTitle}>{track.name}</h3>
-                  <p style={styles.trackArtist}>{track.artists[0].name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Outlet context={{ 
+          userData, 
+          topTracks, 
+          topArtists, 
+          timeRange, 
+          setTimeRange,
+          displayMode,
+          setDisplayMode
+        }} />
       </div>
     </div>
   );
@@ -264,6 +244,21 @@ const styles = {
   loadingText: {
     textAlign: 'center',
     color: '#b3b3b3',
+  },
+  nav: {
+    display: 'flex',
+    gap: '20px',
+    marginRight: '20px',
+  },
+  navLink: {
+    color: 'white',
+    textDecoration: 'none',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    backgroundColor: '#282828',
+    '&:hover': {
+      backgroundColor: '#1DB954',
+    }
   }
 };
 
