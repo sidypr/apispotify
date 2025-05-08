@@ -31,7 +31,7 @@ ChartJS.register(
 );
 
 const Analysis = () => {
-  const { topTracks, topArtists } = useOutletContext();
+  const { topTracks = [], topArtists = [] } = useOutletContext() || {};
   const [audioFeatures, setAudioFeatures] = useState(null);
   const [recentTracks, setRecentTracks] = useState([]);
   const [playlistStats, setPlaylistStats] = useState(null);
@@ -45,6 +45,12 @@ const Analysis = () => {
       const token = localStorage.getItem('spotify_token');
       if (!token) {
         setError("Token non trouvé. Veuillez vous reconnecter.");
+        setLoading(false);
+        return;
+      }
+
+      if (!topTracks.length || !topArtists.length) {
+        setError("Données non disponibles. Veuillez patienter ou recharger la page.");
         setLoading(false);
         return;
       }
@@ -121,7 +127,7 @@ const Analysis = () => {
   }, [topTracks, topArtists]);
 
   // Analyse des moments d'écoute
-  const listeningHours = recentTracks.reduce((acc, track) => {
+  const listeningHours = (recentTracks || []).reduce((acc, track) => {
     const hour = new Date(track.played_at).getHours();
     acc[hour] = (acc[hour] || 0) + 1;
     return acc;
@@ -256,7 +262,7 @@ const Analysis = () => {
         data: popularityStats ? [
           popularityStats.artists.average,
           popularityStats.tracks.average
-        ] : [],
+        ] : [0, 0],
         backgroundColor: '#1DB954',
       },
       {
@@ -264,7 +270,7 @@ const Analysis = () => {
         data: popularityStats ? [
           popularityStats.artists.max,
           popularityStats.tracks.max
-        ] : [],
+        ] : [0, 0],
         backgroundColor: '#4CAF50',
       }
     ]
