@@ -18,7 +18,11 @@ const AUTH_URL = 'https://accounts.spotify.com/authorize' +
     'user-modify-playback-state ' +
     'user-read-currently-playing ' +
     'streaming ' +
-    'app-remote-control'
+    'app-remote-control ' +
+    'user-read-recently-played ' +
+    'user-library-read ' +
+    'playlist-read-private ' +
+    'playlist-read-collaborative'
   );
 
 const Login = () => {
