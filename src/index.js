@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SpotifyAuth from './components/SpotifyAuth';
@@ -7,7 +7,6 @@ import Dashboard from './components/Dashboard';
 import Stats from './components/pages/Stats';
 import Search from './components/pages/Search';
 import Player from './components/pages/Player';
-import Settings from './components/pages/Settings';
 import About from './components/pages/About';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -21,7 +20,6 @@ root.render(
           <Route index element={<Stats />} />
           <Route path="search" element={<Search />} />
           <Route path="player" element={<Player />} />
-          <Route path="settings" element={<Settings />} />
           <Route path="about" element={<About />} />
         </Route>
       </Routes>

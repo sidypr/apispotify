@@ -1,136 +1,139 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend
+);
 
 const Stats = () => {
-  const { topArtists, topTracks, displayMode, setDisplayMode, timeRange, setTimeRange } = useOutletContext();
+  const { topArtists, topTracks, timeRange, setTimeRange } = useOutletContext();
 
-  const renderArtists = () => {
-    if (displayMode === 'grid') {
-      return (
-        <div style={styles.grid}>
-          {topArtists.map(artist => (
-            <div key={artist.id} style={styles.card}>
-              {artist.images?.[0]?.url && (
-                <img src={artist.images[0].url} alt={artist.name} style={styles.artistImage} />
-              )}
-              <h3 style={styles.itemTitle}>{artist.name}</h3>
-              {artist.genres && (
-                <p style={styles.genres}>
-                  {artist.genres.slice(0, 3).join(', ')}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      );
+  // Préparation des données pour le diagramme circulaire des genres
+  const genreData = topArtists.reduce((acc, artist) => {
+    if (artist.genres) {
+      artist.genres.forEach(genre => {
+        acc[genre] = (acc[genre] || 0) + 1;
+      });
     }
+    return acc;
+  }, {});
 
-    return (
-      <div style={styles.list}>
-        {topArtists.map((artist, index) => (
-          <div key={artist.id} style={styles.listItem}>
-            <span style={styles.rank}>{index + 1}</span>
-            {artist.images?.[0]?.url && (
-              <img src={artist.images[0].url} alt={artist.name} style={styles.listImage} />
-            )}
-            <div style={styles.itemInfo}>
-              <h3 style={styles.itemTitle}>{artist.name}</h3>
-              {artist.genres && (
-                <p style={styles.genres}>
-                  {artist.genres.slice(0, 3).join(', ')}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  const sortedGenres = Object.entries(genreData)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+
+  const chartData = {
+    labels: sortedGenres.map(([genre]) => genre),
+    datasets: [{
+      data: sortedGenres.map(([, count]) => count),
+      backgroundColor: [
+        '#1DB954',
+        '#1ed760',
+        '#1aa34a',
+        '#168d40',
+        '#137736'
+      ],
+      borderWidth: 0
+    }]
   };
 
-  const renderTracks = () => {
-    if (displayMode === 'grid') {
-      return (
-        <div style={styles.grid}>
-          {topTracks.map(track => (
-            <div key={track.id} style={styles.card}>
-              <img src={track.album.images[0].url} alt={track.name} style={styles.trackImage} />
-              <h3 style={styles.itemTitle}>{track.name}</h3>
-              <p style={styles.artist}>{track.artists[0].name}</p>
-              <p style={styles.album}>{track.album.name}</p>
-            </div>
-          ))}
-        </div>
-      );
+  const chartOptions = {
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: 'white',
+          font: {
+            size: 12
+          }
+        }
+      }
     }
-
-    return (
-      <div style={styles.list}>
-        {topTracks.map((track, index) => (
-          <div key={track.id} style={styles.listItem}>
-            <span style={styles.rank}>{index + 1}</span>
-            <img src={track.album.images[0].url} alt={track.name} style={styles.listImage} />
-            <div style={styles.itemInfo}>
-              <h3 style={styles.itemTitle}>{track.name}</h3>
-              <p style={styles.artist}>{track.artists[0].name}</p>
-              <p style={styles.album}>{track.album.name}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div style={styles.controls}>
-          <div style={styles.displayModeSelector}>
-            <button 
-              onClick={() => setDisplayMode('grid')}
-              style={displayMode === 'grid' ? styles.activeDisplayButton : styles.displayButton}
-            >
-              Grille
-            </button>
-            <button 
-              onClick={() => setDisplayMode('list')}
-              style={displayMode === 'list' ? styles.activeDisplayButton : styles.displayButton}
-            >
-              Liste
-            </button>
-          </div>
-
-          <div style={styles.timeRangeSelector}>
-            <button 
-              onClick={() => setTimeRange('short_term')}
-              style={timeRange === 'short_term' ? styles.activeTimeButton : styles.timeButton}
-            >
-              4 semaines
-            </button>
-            <button 
-              onClick={() => setTimeRange('medium_term')}
-              style={timeRange === 'medium_term' ? styles.activeTimeButton : styles.timeButton}
-            >
-              6 mois
-            </button>
-            <button 
-              onClick={() => setTimeRange('long_term')}
-              style={timeRange === 'long_term' ? styles.activeTimeButton : styles.timeButton}
-            >
-              Tout le temps
-            </button>
-          </div>
+        <div style={styles.timeRangeSelector}>
+          <button 
+            onClick={() => setTimeRange('short_term')}
+            style={timeRange === 'short_term' ? styles.activeTimeButton : styles.timeButton}
+          >
+            4 semaines
+          </button>
+          <button 
+            onClick={() => setTimeRange('medium_term')}
+            style={timeRange === 'medium_term' ? styles.activeTimeButton : styles.timeButton}
+          >
+            6 mois
+          </button>
+          <button 
+            onClick={() => setTimeRange('long_term')}
+            style={timeRange === 'long_term' ? styles.activeTimeButton : styles.timeButton}
+          >
+            Tout le temps
+          </button>
         </div>
       </div>
 
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>Vos Top Artistes</h2>
-        {renderArtists()}
-      </section>
+      <div style={styles.content}>
+        <div style={styles.chartSection}>
+          <h2 style={styles.sectionTitle}>Vos Genres Préférés</h2>
+          <div style={styles.chart}>
+            <Doughnut data={chartData} options={chartOptions} />
+          </div>
+        </div>
 
-      <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>Vos Top Titres</h2>
-        {renderTracks()}
-      </section>
+        <div style={styles.listsContainer}>
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Vos Top Artistes</h2>
+            <div style={styles.list}>
+              {topArtists.map((artist, index) => (
+                <div key={artist.id} style={styles.listItem}>
+                  <span style={styles.rank}>{index + 1}</span>
+                  {artist.images?.[0]?.url && (
+                    <img src={artist.images[0].url} alt={artist.name} style={styles.listImage} />
+                  )}
+                  <div style={styles.itemInfo}>
+                    <h3 style={styles.itemTitle}>{artist.name}</h3>
+                    {artist.genres && (
+                      <p style={styles.genres}>
+                        {artist.genres.slice(0, 3).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Vos Top Titres</h2>
+            <div style={styles.list}>
+              {topTracks.map((track, index) => (
+                <div key={track.id} style={styles.listItem}>
+                  <span style={styles.rank}>{index + 1}</span>
+                  <img src={track.album.images[0].url} alt={track.name} style={styles.listImage} />
+                  <div style={styles.itemInfo}>
+                    <h3 style={styles.itemTitle}>{track.name}</h3>
+                    <p style={styles.artist}>{track.artists[0].name}</p>
+                    <p style={styles.album}>{track.album.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 };
@@ -139,6 +142,25 @@ const styles = {
   container: {
     padding: '20px',
   },
+  content: {
+    display: 'flex',
+    gap: '40px',
+    marginTop: '30px',
+  },
+  chartSection: {
+    flex: '0 0 400px',
+    backgroundColor: '#282828',
+    padding: '20px',
+    borderRadius: '10px',
+    height: 'fit-content',
+  },
+  chart: {
+    maxWidth: '100%',
+    margin: '0 auto',
+  },
+  listsContainer: {
+    flex: 1,
+  },
   section: {
     marginBottom: '40px',
   },
@@ -146,20 +168,6 @@ const styles = {
     fontSize: '1.8rem',
     color: '#1DB954',
     marginBottom: '20px',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '20px',
-  },
-  card: {
-    backgroundColor: '#282828',
-    padding: '15px',
-    borderRadius: '10px',
-    transition: 'transform 0.2s',
-    '&:hover': {
-      transform: 'scale(1.02)',
-    },
   },
   list: {
     display: 'flex',
@@ -183,18 +191,6 @@ const styles = {
     marginRight: '20px',
     color: '#1DB954',
     minWidth: '30px',
-  },
-  artistImage: {
-    width: '100%',
-    aspectRatio: '1',
-    borderRadius: '50%',
-    marginBottom: '15px',
-  },
-  trackImage: {
-    width: '100%',
-    aspectRatio: '1',
-    borderRadius: '5px',
-    marginBottom: '15px',
   },
   listImage: {
     width: '60px',
@@ -227,45 +223,13 @@ const styles = {
   },
   header: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '30px',
-  },
-  controls: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-    marginBottom: '30px',
-  },
-  displayModeSelector: {
-    display: 'flex',
-    gap: '10px',
     justifyContent: 'center',
+    marginBottom: '30px',
   },
   timeRangeSelector: {
     display: 'flex',
     gap: '10px',
     justifyContent: 'center',
-  },
-  displayButton: {
-    backgroundColor: '#282828',
-    color: 'white',
-    border: '1px solid #1DB954',
-    padding: '8px 16px',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    transition: 'all 0.2s',
-  },
-  activeDisplayButton: {
-    backgroundColor: '#1DB954',
-    color: 'white',
-    border: '1px solid #1DB954',
-    padding: '8px 16px',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-    transition: 'all 0.2s',
   },
   timeButton: {
     backgroundColor: '#282828',
@@ -286,7 +250,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '0.9rem',
     transition: 'all 0.2s',
-  },
+  }
 };
 
 export default Stats; 

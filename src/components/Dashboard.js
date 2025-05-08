@@ -112,13 +112,6 @@ const Dashboard = () => {
             />
           )}
           <h1 style={styles.title}>Bienvenue, {userData.display_name}</h1>
-          <nav style={styles.nav}>
-            <Link to="/dashboard" style={styles.navLink}>Statistiques</Link>
-            <Link to="/dashboard/search" style={styles.navLink}>Recherche</Link>
-            <Link to="/dashboard/player" style={styles.navLink}>Lecteur</Link>
-            <Link to="/dashboard/about" style={styles.navLink}>À propos</Link>
-            <Link to="/dashboard/settings" style={styles.navLink}>Paramètres</Link>
-          </nav>
           <button onClick={handleLogout} style={styles.logoutButton}>
             Déconnexion
           </button>
