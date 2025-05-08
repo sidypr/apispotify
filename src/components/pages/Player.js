@@ -1,199 +1,121 @@
 import React, { useState, useEffect } from 'react';
 
 const Player = () => {
+  const [player, setPlayer] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(50);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState('off');
   const [deviceId, setDeviceId] = useState(null);
+  const [volume, setVolume] = useState(50);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchPlaybackState = async () => {
-      const token = localStorage.getItem('spotify_token');
-      if (!token) {
-        setError('Session non trouvée. Veuillez vous connecter.');
-        return;
-      }
+    const loadSpotifyPlayer = () => {
+      const script = document.createElement("script");
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
+      document.body.appendChild(script);
 
-      try {
-        // D'abord, vérifions les appareils disponibles
-        const devicesResponse = await fetch('https://api.spotify.com/v1/me/player/devices', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        const token = localStorage.getItem('spotify_token');
+        if (!token) {
+          setError("Token non trouvé. Veuillez vous reconnecter.");
+          return;
+        }
+
+        const spotifyPlayer = new window.Spotify.Player({
+          name: 'Spotify Stats Web Player',
+          getOAuthToken: cb => { cb(token); },
+          volume: 0.5
         });
 
-        if (!devicesResponse.ok) {
-          throw new Error('Erreur lors de la récupération des appareils');
-        }
-
-        const devicesData = await devicesResponse.json();
-        const activeDevice = devicesData.devices.find(device => device.is_active);
-        
-        if (!activeDevice) {
-          setError("Aucun appareil actif trouvé. Veuillez lancer Spotify sur l'un de vos appareils et commencer la lecture.");
-          return;
-        }
-
-        // Ensuite, récupérons l'état de lecture
-        const response = await fetch('https://api.spotify.com/v1/me/player', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        spotifyPlayer.addListener('ready', ({ device_id }) => {
+          console.log('Ready with Device ID', device_id);
+          setDeviceId(device_id);
+          transferPlayback(device_id);
         });
 
-        if (response.status === 204) {
-          setError("Aucune lecture en cours. Veuillez lancer une lecture sur Spotify.");
-          return;
-        }
+        spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+          console.log('Device ID has gone offline', device_id);
+          setError("Le lecteur n'est pas prêt. Veuillez réessayer.");
+        });
 
-        if (response.status === 401) {
-          setError('Session expirée. Veuillez vous reconnecter.');
-          return;
-        }
+        spotifyPlayer.addListener('player_state_changed', state => {
+          if (!state) return;
+          setCurrentTrack(state.track_window.current_track);
+          setIsPlaying(!state.paused);
+        });
 
-        if (!response.ok) {
-          throw new Error('Erreur lors de la récupération de l\'état de lecture');
-        }
-
-        const data = await response.json();
-        
-        if (!data.item) {
-          setError("Aucune piste en cours de lecture.");
-          return;
-        }
-
-        setCurrentTrack(data.item);
-        setIsPlaying(data.is_playing);
-        setVolume(data.device.volume_percent);
-        setShuffle(data.shuffle_state);
-        setRepeat(data.repeat_state);
-        setDeviceId(data.device.id);
-        setError(null);
-      } catch (error) {
-        console.error('Erreur:', error);
-        setError('Une erreur est survenue. Veuillez réessayer.');
-      }
+        spotifyPlayer.connect().then(success => {
+          if (success) {
+            setPlayer(spotifyPlayer);
+          }
+        });
+      };
     };
 
-    fetchPlaybackState();
-    const interval = setInterval(fetchPlaybackState, 1000);
-    return () => clearInterval(interval);
+    loadSpotifyPlayer();
+
+    return () => {
+      if (player) {
+        player.disconnect();
+      }
+    };
   }, []);
 
-  const handlePlayPause = async () => {
+  const transferPlayback = async (deviceId) => {
     const token = localStorage.getItem('spotify_token');
-    if (!deviceId) {
-      setError("Aucun appareil actif trouvé.");
-      return;
-    }
-
     try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/${isPlaying ? 'pause' : 'play'}?device_id=${deviceId}`, {
+      await fetch('https://api.spotify.com/v1/me/player', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          device_ids: [deviceId],
+          play: false,
+        }),
       });
-
-      if (response.status === 404) {
-        setError("L'appareil n'est plus disponible. Veuillez rafraîchir la page.");
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Erreur lors du contrôle de la lecture');
-      }
-
-      setIsPlaying(!isPlaying);
     } catch (error) {
-      console.error('Erreur:', error);
-      setError('Une erreur est survenue lors du contrôle de la lecture');
+      console.error('Erreur lors du transfert de lecture:', error);
+      setError("Impossible de transférer la lecture. Vérifiez que Spotify est ouvert sur un autre appareil.");
     }
   };
 
-  const handleSkip = async (direction) => {
-    const token = localStorage.getItem('spotify_token');
+  const handlePlayPause = async () => {
+    if (!player) return;
     try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/${direction}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur lors du passage à la piste ${direction === 'next' ? 'suivante' : 'précédente'}`);
-      }
+      await player.togglePlay();
     } catch (error) {
-      console.error('Erreur:', error);
-      setError('Une erreur est survenue lors du changement de piste');
+      setError("Erreur lors de la lecture/pause. Veuillez réessayer.");
+    }
+  };
+
+  const handlePrevious = async () => {
+    if (!player) return;
+    try {
+      await player.previousTrack();
+    } catch (error) {
+      setError("Impossible de revenir à la piste précédente.");
+    }
+  };
+
+  const handleNext = async () => {
+    if (!player) return;
+    try {
+      await player.nextTrack();
+    } catch (error) {
+      setError("Impossible de passer à la piste suivante.");
     }
   };
 
   const handleVolumeChange = async (newVolume) => {
-    const token = localStorage.getItem('spotify_token');
+    if (!player) return;
     try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${newVolume}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors du changement de volume');
-      }
-
+      await player.setVolume(newVolume / 100);
       setVolume(newVolume);
     } catch (error) {
-      console.error('Erreur:', error);
-      setError('Une erreur est survenue lors du changement de volume');
-    }
-  };
-
-  const handleShuffleToggle = async () => {
-    const token = localStorage.getItem('spotify_token');
-    try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${!shuffle}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors du changement du mode aléatoire');
-      }
-
-      setShuffle(!shuffle);
-    } catch (error) {
-      console.error('Erreur:', error);
-      setError('Une erreur est survenue lors du changement du mode aléatoire');
-    }
-  };
-
-  const handleRepeatToggle = async () => {
-    const token = localStorage.getItem('spotify_token');
-    const nextState = repeat === 'off' ? 'track' : repeat === 'track' ? 'context' : 'off';
-    try {
-      const response = await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${nextState}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors du changement du mode de répétition');
-      }
-
-      setRepeat(nextState);
-    } catch (error) {
-      console.error('Erreur:', error);
-      setError('Une erreur est survenue lors du changement du mode de répétition');
+      setError("Impossible de modifier le volume.");
     }
   };
 
@@ -201,15 +123,16 @@ const Player = () => {
     return (
       <div style={styles.container}>
         <div style={styles.errorCard}>
+          <h2 style={styles.errorTitle}>Erreur du lecteur</h2>
           <p style={styles.errorMessage}>{error}</p>
-          {error.includes('Session expirée') && (
-            <button 
-              onClick={() => window.location.href = '/'}
-              style={styles.reconnectButton}
-            >
-              Se reconnecter
-            </button>
-          )}
+          <p style={styles.errorHint}>
+            Assurez-vous que :
+            <ul style={styles.errorList}>
+              <li>Vous êtes connecté à Spotify</li>
+              <li>Vous avez un abonnement Spotify Premium</li>
+              <li>Spotify est ouvert sur un autre appareil</li>
+            </ul>
+          </p>
         </div>
       </div>
     );
@@ -218,25 +141,18 @@ const Player = () => {
   if (!currentTrack) {
     return (
       <div style={styles.container}>
-        <div style={styles.loader}></div>
-        <p style={styles.loadingMessage}>
-          Chargement du lecteur...
-        </p>
+        <div style={styles.messageCard}>
+          <h2 style={styles.messageTitle}>Aucune lecture en cours</h2>
+          <p style={styles.message}>
+            Lancez la lecture sur un autre appareil Spotify, puis revenez ici pour contrôler la lecture.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      <div style={styles.helpCard}>
-        <p style={styles.helpText}>
-          Pour utiliser le lecteur :
-          <br />1. Assurez-vous d'avoir un compte Spotify Premium
-          <br />2. Ouvrez Spotify sur n'importe quel appareil (mobile, ordinateur, etc.)
-          <br />3. Commencez la lecture d'une chanson
-          <br />4. Le lecteur se synchronisera automatiquement
-        </p>
-      </div>
       <div style={styles.playerCard}>
         <div style={styles.nowPlaying}>
           <img 
@@ -246,73 +162,31 @@ const Player = () => {
           />
           <div style={styles.trackInfo}>
             <h2 style={styles.trackName}>{currentTrack.name}</h2>
-            <p style={styles.artistName}>
-              {currentTrack.artists.map(artist => artist.name).join(', ')}
-            </p>
+            <p style={styles.artistName}>{currentTrack.artists[0].name}</p>
             <p style={styles.albumName}>{currentTrack.album.name}</p>
           </div>
         </div>
 
-        <div style={styles.progressBar}>
-          <div 
-            style={{
-              ...styles.progress,
-              width: `${(currentTrack.progress_ms / currentTrack.duration_ms) * 100}%`
-            }}
-          />
-        </div>
-
         <div style={styles.controls}>
-          <button 
-            onClick={handleShuffleToggle}
-            style={{
-              ...styles.controlButton,
-              backgroundColor: shuffle ? '#1DB954' : '#282828'
-            }}
-          >
-            Aléatoire
+          <button onClick={handlePrevious} style={styles.controlButton}>
+            ⏮️
           </button>
-
-          <button 
-            onClick={() => handleSkip('previous')}
-            style={styles.controlButton}
-          >
-            Précédent
+          <button onClick={handlePlayPause} style={styles.playButton}>
+            {isPlaying ? '⏸️' : '▶️'}
           </button>
-
-          <button 
-            onClick={handlePlayPause}
-            style={{...styles.controlButton, width: '80px'}}
-          >
-            {isPlaying ? 'Pause' : 'Lecture'}
-          </button>
-
-          <button 
-            onClick={() => handleSkip('next')}
-            style={styles.controlButton}
-          >
-            Suivant
-          </button>
-
-          <button 
-            onClick={handleRepeatToggle}
-            style={{
-              ...styles.controlButton,
-              backgroundColor: repeat !== 'off' ? '#1DB954' : '#282828'
-            }}
-          >
-            {repeat === 'track' ? 'Répéter 1' : repeat === 'context' ? 'Répéter tout' : 'Répéter'}
+          <button onClick={handleNext} style={styles.controlButton}>
+            ⏭️
           </button>
         </div>
 
         <div style={styles.volumeControl}>
-          <span style={styles.volumeLabel}>Volume</span>
+          <span style={styles.volumeLabel}>🔈</span>
           <input
             type="range"
             min="0"
             max="100"
             value={volume}
-            onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+            onChange={(e) => handleVolumeChange(Number(e.target.value))}
             style={styles.volumeSlider}
           />
           <span style={styles.volumeValue}>{volume}%</span>
@@ -368,29 +242,42 @@ const styles = {
     marginBottom: '30px',
   },
   controlButton: {
-    backgroundColor: '#282828',
+    backgroundColor: 'transparent',
     color: 'white',
     border: '1px solid #1DB954',
     padding: '10px 20px',
     borderRadius: '20px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
-    transition: 'background-color 0.2s',
+    fontSize: '1.5rem',
+    transition: 'all 0.2s',
     '&:hover': {
       backgroundColor: '#1DB954',
+    },
+  },
+  playButton: {
+    backgroundColor: '#1DB954',
+    color: 'white',
+    border: 'none',
+    padding: '10px 30px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    fontSize: '1.5rem',
+    transition: 'all 0.2s',
+    '&:hover': {
+      transform: 'scale(1.05)',
     },
   },
   volumeControl: {
     display: 'flex',
     alignItems: 'center',
     gap: '15px',
+    justifyContent: 'center',
   },
   volumeLabel: {
-    fontSize: '0.9rem',
-    color: '#b3b3b3',
+    fontSize: '1.2rem',
   },
   volumeSlider: {
-    flex: 1,
+    width: '200px',
     height: '4px',
     borderRadius: '2px',
     backgroundColor: '#535353',
@@ -409,67 +296,49 @@ const styles = {
     color: '#b3b3b3',
     minWidth: '45px',
   },
-  progressBar: {
-    width: '100%',
-    height: '4px',
-    backgroundColor: '#535353',
-    borderRadius: '2px',
-    marginBottom: '20px',
-    overflow: 'hidden',
-  },
-  progress: {
-    height: '100%',
-    backgroundColor: '#1DB954',
-    transition: 'width 1s linear',
-  },
   errorCard: {
     backgroundColor: '#282828',
-    padding: '20px',
+    padding: '30px',
     borderRadius: '10px',
-    textAlign: 'center',
     maxWidth: '600px',
     margin: '0 auto',
+    textAlign: 'center',
+  },
+  errorTitle: {
+    color: '#ff4444',
+    fontSize: '1.5rem',
+    marginBottom: '20px',
   },
   errorMessage: {
-    color: '#ff4444',
+    color: '#b3b3b3',
     fontSize: '1.1rem',
     marginBottom: '20px',
   },
-  reconnectButton: {
-    backgroundColor: '#1DB954',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '20px',
-    cursor: 'pointer',
+  errorHint: {
+    color: '#b3b3b3',
     fontSize: '1rem',
   },
-  loader: {
-    border: '4px solid #1DB954',
-    borderTop: '4px solid transparent',
-    borderRadius: '50%',
-    width: '40px',
-    height: '40px',
-    animation: 'spin 1s linear infinite',
-    margin: '40px auto',
+  errorList: {
+    listStyle: 'none',
+    padding: '0',
+    marginTop: '10px',
   },
-  loadingMessage: {
+  messageCard: {
+    backgroundColor: '#282828',
+    padding: '30px',
+    borderRadius: '10px',
+    maxWidth: '600px',
+    margin: '0 auto',
     textAlign: 'center',
+  },
+  messageTitle: {
+    color: '#1DB954',
+    fontSize: '1.5rem',
+    marginBottom: '20px',
+  },
+  message: {
     color: '#b3b3b3',
     fontSize: '1.1rem',
-  },
-  helpCard: {
-    backgroundColor: '#282828',
-    padding: '20px',
-    borderRadius: '10px',
-    maxWidth: '800px',
-    margin: '0 auto 20px auto',
-  },
-  helpText: {
-    color: '#b3b3b3',
-    fontSize: '1rem',
-    lineHeight: '1.5',
-    margin: 0,
   },
 };
 

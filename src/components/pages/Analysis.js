@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Line, Radar, Pie } from 'react-chartjs-2';
+import { Line, Radar, Pie, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   RadialLinearScale,
@@ -12,7 +12,8 @@ import {
   LinearScale,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  BarElement
 } from 'chart.js';
 
 ChartJS.register(
@@ -25,19 +26,28 @@ ChartJS.register(
   LinearScale,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  BarElement
 );
 
 const Analysis = () => {
-  const { topTracks } = useOutletContext();
+  const { topTracks, topArtists } = useOutletContext();
   const [audioFeatures, setAudioFeatures] = useState(null);
   const [recentTracks, setRecentTracks] = useState([]);
   const [playlistStats, setPlaylistStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [artistGenres, setArtistGenres] = useState({});
+  const [popularityStats, setPopularityStats] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('spotify_token');
-      if (!token) return;
+      if (!token) {
+        setError("Token non trouvé. Veuillez vous reconnecter.");
+        setLoading(false);
+        return;
+      }
 
       try {
         // Récupérer les caractéristiques audio
@@ -57,7 +67,7 @@ const Analysis = () => {
         const recentData = await recentResponse.json();
         setRecentTracks(recentData.items);
 
-        // Récupérer les playlists de l'utilisateur
+        // Récupérer les playlists
         const playlistsResponse = await fetch('https://api.spotify.com/v1/me/playlists', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -69,16 +79,46 @@ const Analysis = () => {
           totalTracks: playlistsData.items.reduce((acc, playlist) => acc + playlist.tracks.total, 0),
           publicPlaylists: playlistsData.items.filter(p => p.public).length,
           privatePlaylists: playlistsData.items.filter(p => !p.public).length,
+          collaborative: playlistsData.items.filter(p => p.collaborative).length
         };
         setPlaylistStats(stats);
 
+        // Analyser les genres des artistes
+        const genres = topArtists.reduce((acc, artist) => {
+          if (artist.genres) {
+            artist.genres.forEach(genre => {
+              acc[genre] = (acc[genre] || 0) + 1;
+            });
+          }
+          return acc;
+        }, {});
+        setArtistGenres(genres);
+
+        // Analyser la popularité
+        const popularityData = {
+          artists: {
+            average: Math.round(topArtists.reduce((acc, artist) => acc + artist.popularity, 0) / topArtists.length),
+            max: Math.max(...topArtists.map(artist => artist.popularity)),
+            min: Math.min(...topArtists.map(artist => artist.popularity))
+          },
+          tracks: {
+            average: Math.round(topTracks.reduce((acc, track) => acc + track.popularity, 0) / topTracks.length),
+            max: Math.max(...topTracks.map(track => track.popularity)),
+            min: Math.min(...topTracks.map(track => track.popularity))
+          }
+        };
+        setPopularityStats(popularityData);
+
+        setLoading(false);
       } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
+        setError("Une erreur est survenue lors de la récupération des données.");
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [topTracks]);
+  }, [topTracks, topArtists]);
 
   // Analyse des moments d'écoute
   const listeningHours = recentTracks.reduce((acc, track) => {
@@ -100,6 +140,8 @@ const Analysis = () => {
   };
 
   const timeChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
@@ -124,7 +166,7 @@ const Analysis = () => {
     }
   };
 
-  // Analyse des caractéristiques musicales moyennes
+  // Analyse des caractéristiques musicales
   const averageFeatures = audioFeatures?.reduce(
     (acc, track) => {
       if (!track) return acc;
@@ -134,10 +176,12 @@ const Analysis = () => {
         valence: acc.valence + track.valence,
         instrumentalness: acc.instrumentalness + track.instrumentalness,
         acousticness: acc.acousticness + track.acousticness,
-        speechiness: acc.speechiness + track.speechiness
+        speechiness: acc.speechiness + track.speechiness,
+        tempo: acc.tempo + track.tempo,
+        key: acc.key + track.key
       };
     },
-    { danceability: 0, energy: 0, valence: 0, instrumentalness: 0, acousticness: 0, speechiness: 0 }
+    { danceability: 0, energy: 0, valence: 0, instrumentalness: 0, acousticness: 0, speechiness: 0, tempo: 0, key: 0 }
   );
 
   if (averageFeatures) {
@@ -177,6 +221,8 @@ const Analysis = () => {
   };
 
   const radarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       r: {
         beginAtZero: true,
@@ -201,17 +247,74 @@ const Analysis = () => {
     }
   };
 
+  // Popularité
+  const popularityData = {
+    labels: ['Artistes', 'Titres'],
+    datasets: [
+      {
+        label: 'Popularité moyenne',
+        data: popularityStats ? [
+          popularityStats.artists.average,
+          popularityStats.tracks.average
+        ] : [],
+        backgroundColor: '#1DB954',
+      },
+      {
+        label: 'Popularité maximale',
+        data: popularityStats ? [
+          popularityStats.artists.max,
+          popularityStats.tracks.max
+        ] : [],
+        backgroundColor: '#4CAF50',
+      }
+    ]
+  };
+
+  const popularityOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: 'white' }
+      },
+      x: {
+        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+        ticks: { color: 'white' }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: { color: 'white' }
+      },
+      title: {
+        display: true,
+        text: 'Analyse de la popularité',
+        color: 'white',
+        font: { size: 16 }
+      }
+    }
+  };
+
   // Statistiques des playlists
   const playlistData = playlistStats ? {
-    labels: ['Playlists publiques', 'Playlists privées'],
+    labels: ['Publiques', 'Privées', 'Collaboratives'],
     datasets: [{
-      data: [playlistStats.publicPlaylists, playlistStats.privatePlaylists],
-      backgroundColor: ['#1DB954', '#535353'],
+      data: [
+        playlistStats.publicPlaylists,
+        playlistStats.privatePlaylists,
+        playlistStats.collaborative
+      ],
+      backgroundColor: ['#1DB954', '#535353', '#4CAF50'],
       borderWidth: 0
     }]
   } : null;
 
   const playlistOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'bottom',
@@ -219,6 +322,28 @@ const Analysis = () => {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.loadingCard}>
+          <div style={styles.loader}></div>
+          <p style={styles.loadingText}>Chargement de vos statistiques...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <h2 style={styles.errorTitle}>Erreur</h2>
+          <p style={styles.errorMessage}>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -236,6 +361,20 @@ const Analysis = () => {
           <h2 style={styles.cardTitle}>Profil Musical</h2>
           <div style={styles.chartContainer}>
             <Radar data={radarData} options={radarOptions} />
+          </div>
+          {averageFeatures && (
+            <div style={styles.additionalStats}>
+              <p style={styles.stat}>
+                Tempo moyen : <span style={styles.statValue}>{Math.round(averageFeatures.tempo)} BPM</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Popularité</h2>
+          <div style={styles.chartContainer}>
+            <Bar data={popularityData} options={popularityOptions} />
           </div>
         </div>
 
@@ -306,6 +445,48 @@ const styles = {
   statValue: {
     color: '#1DB954',
     fontWeight: 'bold',
+  },
+  additionalStats: {
+    marginTop: '20px',
+    textAlign: 'center',
+  },
+  loadingCard: {
+    backgroundColor: '#282828',
+    padding: '30px',
+    borderRadius: '10px',
+    maxWidth: '400px',
+    margin: '100px auto',
+    textAlign: 'center',
+  },
+  loader: {
+    border: '4px solid #1DB954',
+    borderTop: '4px solid transparent',
+    borderRadius: '50%',
+    width: '40px',
+    height: '40px',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 20px',
+  },
+  loadingText: {
+    color: '#b3b3b3',
+    fontSize: '1.1rem',
+  },
+  errorCard: {
+    backgroundColor: '#282828',
+    padding: '30px',
+    borderRadius: '10px',
+    maxWidth: '400px',
+    margin: '100px auto',
+    textAlign: 'center',
+  },
+  errorTitle: {
+    color: '#ff4444',
+    fontSize: '1.5rem',
+    marginBottom: '20px',
+  },
+  errorMessage: {
+    color: '#b3b3b3',
+    fontSize: '1.1rem',
   },
 };
 
